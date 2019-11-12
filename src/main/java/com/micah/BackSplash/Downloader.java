@@ -9,9 +9,17 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.micah.BackSplash.DAO.JDBCPhotoDAO;
+import com.micah.BackSplash.model.Photo;
+
 public class Downloader {
 
 	private static URL collectionPage;
+	
+	@Autowired
+	private static JDBCPhotoDAO dao;
 
 	public static void main(String[] args) {
 		// first establish connection to collection page
@@ -21,6 +29,9 @@ public class Downloader {
 		List<String> photoKeys = readFromURL();
 
 		// check if keys are already in database OR already saved on local drive
+		List<Photo> unsavedPhotos = findNewPhotos(photoKeys);
+		
+		// download new photos, then add info to database
 
 	}
 
@@ -96,6 +107,31 @@ public class Downloader {
 		}
 
 		return photoKeys;
+	}
+	
+	private static List<Photo> findNewPhotos(List<String> photoKeys) {
+		List<Photo> newPhotos = new ArrayList<Photo>();
+		
+		// populate list with Photo objects that only have hash values
+		for(String hash : photoKeys) {
+			Photo p = generatePhotoFromHash(hash);
+			newPhotos.add(p);
+		}
+		
+		// get list of currently saved photos
+		List<Photo> currentPhotos = dao.getAllPhotos();
+		
+		// removes photos that have already been saved from new Photo list
+		newPhotos.removeAll(currentPhotos);
+
+		return newPhotos;
+	}
+	
+	private static Photo generatePhotoFromHash(String hash) {
+		Photo p = new Photo();
+		p.setHash(hash);
+		
+		return p;
 	}
 
 	/*
