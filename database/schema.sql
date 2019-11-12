@@ -5,7 +5,6 @@ DROP TABLE IF EXISTS unsplash_watcher;
 CREATE TABLE unsplash_watcher (
     id serial,
     unsplash_photo_hash VARCHAR(255) NOT NULL,
-    unsplash_link VARCHAR(255) NOT NULL,
     photographer_name VARCHAR(255) NULL,
     photographer_page_link VARCHAR(255) NOT NULL,
     saved_boolean boolean NOT NULL,

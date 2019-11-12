@@ -4,11 +4,11 @@ public class Photo {
 
 	private Long id;
 	private String hash;
-	private String photoLink;
 	private String photographerName;
 	private String photographerLink;
 	private Boolean saved;
 	private String photoFilePath;
+	
 	public Long getId() {
 		return id;
 	}
@@ -20,12 +20,6 @@ public class Photo {
 	}
 	public void setHash(String hash) {
 		this.hash = hash;
-	}
-	public String getPhotoLink() {
-		return photoLink;
-	}
-	public void setPhotoLink(String photoLink) {
-		this.photoLink = photoLink;
 	}
 	public String getPhotographerName() {
 		return photographerName;

@@ -22,7 +22,7 @@ public class JDBCPhotoDAO implements PhotoDAO {
 	public List<Photo> getAllPhotos() {
 		List<Photo> allPhotos = new ArrayList<Photo>();
 
-		String sql = "SELECT id, unsplash_photo_hash, unsplash_link, photographer_name, photographer_page_link, saved_boolean, file_path FROM unsplash_watcher";
+		String sql = "SELECT id, unsplash_photo_hash, photographer_name, photographer_page_link, saved_boolean, file_path FROM unsplash_watcher";
 		SqlRowSet results = dao.queryForRowSet(sql);
 
 		while (results.next()) {
@@ -37,7 +37,7 @@ public class JDBCPhotoDAO implements PhotoDAO {
 	public List<Photo> getAllSavedPhotos() {
 		List<Photo> allSavedPhotos = new ArrayList<Photo>();
 
-		String sql = "SELECT id, unsplash_photo_hash, unsplash_link, photographer_name, photographer_page_link, saved_boolean, file_path FROM unsplash_watcher WHERE saved_boolean IS TRUE";
+		String sql = "SELECT id, unsplash_photo_hash, photographer_name, photographer_page_link, saved_boolean, file_path FROM unsplash_watcher WHERE saved_boolean IS TRUE";
 		SqlRowSet results = dao.queryForRowSet(sql);
 
 		while (results.next()) {
@@ -52,7 +52,7 @@ public class JDBCPhotoDAO implements PhotoDAO {
 	public List<Photo> getAllUnsavedPhotos() {
 		List<Photo> allUnavedPhotos = new ArrayList<Photo>();
 
-		String sql = "SELECT id, unsplash_photo_hash, unsplash_link, photographer_name, photographer_page_link, saved_boolean, file_path FROM unsplash_watcher WHERE saved_boolean IS FALSE";
+		String sql = "SELECT id, unsplash_photo_hash, photographer_name, photographer_page_link, saved_boolean, file_path FROM unsplash_watcher WHERE saved_boolean IS FALSE";
 		SqlRowSet results = dao.queryForRowSet(sql);
 
 		while (results.next()) {
@@ -65,17 +65,16 @@ public class JDBCPhotoDAO implements PhotoDAO {
 
 	@Override
 	public boolean addPhoto(Photo p) {
-		String sql = "INSERT INTO unsplash_watcher (id, unsplash_photo_hash, unsplash_link, photographer_name, photographer_page_link, saved_boolean, file_path) VALUES (DEFAULT, ?, ?, ?, ?, ?, ?) RETURNING id";
+		String sql = "INSERT INTO unsplash_watcher (id, unsplash_photo_hash, photographer_name, photographer_page_link, saved_boolean, file_path) VALUES (DEFAULT, ?, ?, ?, ?, ?) RETURNING id";
 		
 		String photoHash = p.getHash();
-		String unsplashLink = p.getPhotoLink();
 		String photogName = p.getPhotographerName();
 		String photogLink = p.getPhotographerLink();
 		Boolean saved = false;
 		String filePath = null;
 		
 		try {
-			SqlRowSet results = dao.queryForRowSet(sql, photoHash, unsplashLink, photogName, photogLink, saved, filePath);
+			SqlRowSet results = dao.queryForRowSet(sql, photoHash, photogName, photogLink, saved, filePath);
 			results.next();
 			p.setId(results.getLong("id"));
 			return true;
@@ -103,7 +102,6 @@ public class JDBCPhotoDAO implements PhotoDAO {
 
 		p.setId(results.getLong("id"));
 		p.setHash(results.getString("unsplash_photo_hash"));
-		p.setPhotoLink(results.getString("unsplash_link"));
 		p.setPhotographerName(results.getString("photographer_name"));
 		p.setPhotographerLink(results.getString("photographer_link"));
 		p.setSaved(results.getBoolean("saved_boolean"));
