@@ -21,26 +21,31 @@ public class FolderScanner {
 
 	private static final String directory = "/Users/micahkaufmanwright/OneDrive/Pictures/Wallpaper";
 	private static JdbcTemplate jdbcTemplate;
-	
-//	For future iterations of this... when it can prompted from the UI
-//	public FolderScanner(JDBCPhotoDAO dao) {
-//		this.dao = dao;
-//	}
-	
-	public static void main(String[] args) {
-		// set-up
+
+	public FolderScanner() {
 		BasicDataSource dataSource = new BasicDataSource();
 		dataSource.setUrl("jdbc:postgresql://localhost:5432/unsplash_watcher");
 		dataSource.setUsername("postgres");
 		dataSource.setPassword("postgres1");
 		
 		jdbcTemplate = new JdbcTemplate(dataSource);
-		JDBCPhotoDAO jdbcPhotoDAO = new JDBCPhotoDAO(dataSource);
-		
-		initialScanFolderForImages();
+//		JDBCPhotoDAO jdbcPhotoDAO = new JDBCPhotoDAO(dataSource);
 	}
+	
+//	public static void main(String[] args) {
+//		// set-up
+//		BasicDataSource dataSource = new BasicDataSource();
+//		dataSource.setUrl("jdbc:postgresql://localhost:5432/unsplash_watcher");
+//		dataSource.setUsername("postgres");
+//		dataSource.setPassword("postgres1");
+//		
+//		jdbcTemplate = new JdbcTemplate(dataSource);
+//		JDBCPhotoDAO jdbcPhotoDAO = new JDBCPhotoDAO(dataSource);
+//		
+//		scanFolderForImages();
+//	}
 
-	public static List<Photo> initialScanFolderForImages() {
+	public List<Photo> scanFolderForImages() {
 		List<Photo> photosInFolder = new ArrayList<Photo>();
 		
 		List<String> listOfFileNames = makeListOfFileNames(directory);
@@ -51,16 +56,26 @@ public class FolderScanner {
 		return photosInFolder;
 	}
 
-	private static Photo mapTitleToPhoto(String s) {
+	private Photo mapTitleToPhoto(String s) {
 		String[] splitFileName = s.split("-");
 		
 		String hash = splitFileName[splitFileName.length-2];
-		String photoFilePath = directory + "/" + s;
+		//String photoFilePath = directory + "/" + s;
+		String photographerName = "";
+		
+		for(int i = 0; i < splitFileName.length - 2; i++) {
+			if(i==0) {
+				photographerName = splitFileName[i];
+			} else {
+				photographerName = " " + splitFileName[i];
+			}
+		}
 		
 		Photo p = new Photo();
 		p.setHash(hash);
-		p.setPhotoFilePath(photoFilePath);
-		p.setSaved(true);
+		p.setPhotoFilePath(s);
+		p.setPhotographerName(photographerName);
+		// p.setSaved(true); // leaving this to the addPhotoToDatabase helper method
 		Photo insertedP = addPhotoToDatabase(p);
 		
 		if(insertedP.getSaved()) {
@@ -72,14 +87,14 @@ public class FolderScanner {
 		return insertedP;
 	}
 
-	private static List<String> makeListOfFileNames(String directory) {
+	private List<String> makeListOfFileNames(String directory) {
 		List<String> resultList = null;
 
 		try (Stream<Path> walk = Files.walk(Paths.get(directory))) {
 
 			resultList = walk.map(x -> x.toString()).filter(f -> f.endsWith(".jpg")).collect(Collectors.toList());
 
-			resultList.forEach(System.out::println);
+			// resultList.forEach(System.out::println);
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -88,23 +103,37 @@ public class FolderScanner {
 		return resultList;
 	}
 	
-	private static Photo addPhotoToDatabase(Photo p) {
-		String sql = "INSERT INTO unsplash_watcher (id, unsplash_photo_hash, saved_boolean, file_path) VALUES (DEFAULT, ?, ?, ?) RETURNING id";
+	public Photo addPhotoToDatabase(Photo p) {
+		
+		if (checkIfAlreadyInDatabase(p)) {
+			p.setSaved(true);
+			return p;
+		}
+		
+		
+		String sql = "INSERT INTO unsplash_watcher (id, unsplash_photo_hash, saved_boolean, file_path, photographer_name) VALUES (DEFAULT, ?, ?, ?, ?)";
 		
 		String photoHash = p.getHash();
 		Boolean saved = true;
 		String filePath = p.getPhotoFilePath();
+		String photographerName = p.getPhotographerName();
 		
-		try {
-			SqlRowSet results = jdbcTemplate.queryForRowSet(sql, photoHash, saved, filePath);
-			results.next();
-			p.setId(results.getLong("id"));
+		if(1 == jdbcTemplate.update(sql, photoHash, saved, filePath, photographerName)) {
+			p.setSaved(true);
 			return p;
-		} catch (Exception e) {
-			p.setSaved(false);
 		}
-		
+		p.setSaved(false);
 		return p;
+	}
+
+	public boolean checkIfAlreadyInDatabase(Photo p) {
+		String sql = "SELECT COUNT(unsplash_photo_hash) FROM unsplash_watcher WHERE unsplash_photo_hash LIKE ?";
+		SqlRowSet results = jdbcTemplate.queryForRowSet(sql, p.getHash());
+		results.next();
+		int rowCount = results.getInt("count");
+		// checks if this is already in the db
+		// if it is, this should return 1, for its row in the db
+		return (rowCount == 1);
 	}
 
 }
